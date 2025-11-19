@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text.Json;
@@ -12,20 +13,31 @@ public interface IHttpClientResponse : IDisposable
     /// </summary>
     Exception? Exception { get; }
     HttpResponseHeaders? Headers { get; }
+    /// <summary>
+    /// Gets a value indicating whether the HTTP response was successful (status code 2xx).
+    /// </summary>
     bool IsSuccessStatusCode { get; }
     string? ReasonPhrase { get; }
-    HttpRequestMessage RequestMessage { get; }
+    HttpRequestMessage Request { get; }
+    HttpResponseMessage? Response { get; }
+    /// <summary>
+    /// Gets the HTTP status code of the response, or 0 if the response is not set.
+    /// </summary>
     HttpStatusCode StatusCode { get; }
+    /// <summary>
+    /// Indicates whether the HTTP response was successful (status code 2xx) and no exception occurred. If true, <see cref="Response"/> is guaranteed to be not null.
+    /// </summary>
+    bool Success { get; }
     HttpResponseHeaders? TrailingHeaders { get; }
 
     /// <summary>
     /// Reads the HTTP response content as a JSON document.
     /// </summary>
+    /// <returns>The JSON document representing the HTTP response content, or null if the content is not set.</returns>
     /// <exception cref="ArgumentException"><paramref name="options"/> contains unsupported options</exception>
-    /// <exception cref="InvalidOperationException">HTTP response content is not set</exception>
     /// <exception cref="JsonException">The content is not valid JSON</exception>
     /// <exception cref="OperationCanceledException">The operation was canceled</exception>
-    Task<JsonDocument> ContentAsJsonDocumentAsync(JsonDocumentOptions options = default, CancellationToken cancellationToken = default);
+    Task<JsonDocument?> ContentAsJsonDocumentAsync(JsonDocumentOptions options = default, CancellationToken cancellationToken = default);
     /// <summary>
     /// Throws an exception if the HTTP response was not successful or if the HTTP response is not set.
     /// </summary>
@@ -36,37 +48,51 @@ public interface IHttpClientResponse : IDisposable
 
 public class HttpClientResponse : IHttpClientResponse
 {
-    public HttpContent? Content => _httpResponseMessage?.Content;
+    public HttpContent? Content => Response?.Content;
 
     /// <summary>
     /// Gets the exception that occurred during the HTTP request, if any.
     /// </summary>
     public Exception? Exception { get; internal set; }
 
-    public HttpResponseHeaders? Headers => _httpResponseMessage?.Headers;
-    public bool IsSuccessStatusCode => _httpResponseMessage?.IsSuccessStatusCode ?? false;
-    public string? ReasonPhrase => _httpResponseMessage?.ReasonPhrase;
-    public HttpRequestMessage RequestMessage { get; private set; }
-    public HttpStatusCode StatusCode => _httpResponseMessage?.StatusCode ?? 0;
-    public HttpResponseHeaders? TrailingHeaders => _httpResponseMessage?.TrailingHeaders;
+    public HttpResponseHeaders? Headers => Response?.Headers;
 
-    private HttpResponseMessage? _httpResponseMessage;
+    /// <summary>
+    /// Gets a value indicating whether the HTTP response was successful (status code 2xx).
+    /// </summary>
+    public bool IsSuccessStatusCode => Response?.IsSuccessStatusCode ?? false;
+
+    public string? ReasonPhrase => Response?.ReasonPhrase;
+    public HttpRequestMessage Request { get; private set; }
+    public HttpResponseMessage? Response { get; private set; }
+
+    /// <summary>
+    /// Gets the HTTP status code of the response, or 0 if the response is not set.
+    /// </summary>
+    public HttpStatusCode StatusCode => Response?.StatusCode ?? 0;
+
+    /// <summary>
+    /// Indicates whether the HTTP response was successful (status code 2xx) and no exception occurred. If true, <see cref="Response"/> is guaranteed to be not null.
+    /// </summary>
+    [MemberNotNullWhen(true, nameof(Response))]
+    public bool Success => Response is not null && IsSuccessStatusCode && Exception == null;
+
+    public HttpResponseHeaders? TrailingHeaders => Response?.TrailingHeaders;
 
     public HttpClientResponse(HttpRequestMessage httpRequestMessage)
     {
-        RequestMessage = httpRequestMessage;
+        Request = httpRequestMessage;
     }
 
     /// <summary>
     /// Reads the HTTP response content as a JSON document.
     /// </summary>
     /// <exception cref="ArgumentException"><paramref name="options"/> contains unsupported options</exception>
-    /// <exception cref="InvalidOperationException">HTTP response content is not set</exception>
     /// <exception cref="JsonException">The content is not valid JSON</exception>
     /// <exception cref="OperationCanceledException">The operation was canceled</exception>
-    public async Task<JsonDocument> ContentAsJsonDocumentAsync(JsonDocumentOptions options = default, CancellationToken cancellationToken = default)
+    public async Task<JsonDocument?> ContentAsJsonDocumentAsync(JsonDocumentOptions options = default, CancellationToken cancellationToken = default)
     {
-        if (Content == null) throw new InvalidOperationException("HTTP response content is not set");
+        if (Content == null) return null;
 
         using var contentStream = await Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
         return await JsonDocument.ParseAsync(contentStream, options, cancellationToken).ConfigureAwait(false);
@@ -78,11 +104,12 @@ public class HttpClientResponse : IHttpClientResponse
     /// <exception cref="HttpRequestException">The HTTP response was not successful</exception>
     /// <exception cref="InvalidOperationException">HTTP response is not set</exception>
     public HttpResponseMessage EnsureSuccessStatusCode() =>
-        _httpResponseMessage?.EnsureSuccessStatusCode() ?? throw new InvalidOperationException("HTTP response is not set");
+        Response?.EnsureSuccessStatusCode() ?? throw new InvalidOperationException("HTTP response is not set");
 
     internal void SetHttpResponse(HttpResponseMessage httpResponseMessage)
     {
-        _httpResponseMessage = httpResponseMessage;
+        Response = httpResponseMessage;
+        Request = httpResponseMessage.RequestMessage!;
     }
 
     ~HttpClientResponse()
@@ -96,7 +123,8 @@ public class HttpClientResponse : IHttpClientResponse
     {
         if (disposing)
         {
-            _httpResponseMessage?.Dispose();
+            Request.Dispose();
+            Response?.Dispose();
         }
     }
 
