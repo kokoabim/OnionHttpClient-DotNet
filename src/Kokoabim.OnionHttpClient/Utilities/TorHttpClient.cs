@@ -30,8 +30,10 @@ public interface ITorHttpClient : IHttpClient
 
 public class TorHttpClient : ITorHttpClient
 {
+    public const int NoId = -1;
+
     public Exception? Error { get; private set; }
-    public int Id { get; private set; } = -1;
+    public int Id { get; private set; } = NoId;
     public string? IPAddress { get; private set; }
     public int RequestCount => _requestHandler?.RequestCount ?? 0;
     public TorHttpClientStatus Status { get; private set; }
@@ -51,6 +53,8 @@ public class TorHttpClient : ITorHttpClient
         _torService = torService;
     }
 
+    #region methods
+
     /// <summary>
     /// Stops the running Tor instance.
     /// </summary>
@@ -62,7 +66,7 @@ public class TorHttpClient : ITorHttpClient
 
         Status = TorHttpClientStatus.Disconnected;
 
-        _logger.LogInformation("[{Id}] Tor HTTP client disconnected", Id);
+        Log(LogLevel.Information, "Tor HTTP client disconnected");
     }
 
     public void Dispose()
@@ -87,7 +91,7 @@ public class TorHttpClient : ITorHttpClient
         Error = new Exception($"Tor HTTP client is not connected: {torClientStatus}", torClientStatus.Error);
         Status = TorHttpClientStatus.FailedToConnectToTor;
 
-        _logger.LogError("[{Id}] {Error}", Id, Error.GetMessages());
+        Log(LogLevel.Error, "Failed to get Tor client status: {Error}", Error.GetMessages());
 
         return false;
     }
@@ -95,25 +99,31 @@ public class TorHttpClient : ITorHttpClient
     /// <summary>
     /// Initializes the Tor HTTP client with the specified settings.
     /// </summary>
-    public async Task<bool> InitializeAsync(int id, HttpClientInstanceSettings httpClientInstanceSettings, TorInstanceSettings torInstanceSettings, CancellationToken cancellationToken = default)
+    public Task<bool> InitializeAsync(HttpClientInstanceSettings httpClientInstanceSettings, TorInstanceSettings torInstanceSettings, CancellationToken cancellationToken = default) =>
+        InitializeAsync(NoId, httpClientInstanceSettings, torInstanceSettings, cancellationToken);
+
+    /// <summary>
+    /// Initializes the Tor HTTP client with the specified settings.
+    /// </summary>
+    public async Task<bool> InitializeAsync(int id, HttpClientInstanceSettings httpClientSettings, TorInstanceSettings torSettings, CancellationToken cancellationToken = default)
     {
         if (Status != TorHttpClientStatus.Uninitialized) throw new InvalidOperationException($"Tor HTTP client has already been initialized");
 
         Id = id;
         Status = TorHttpClientStatus.ConnectingToTor;
 
-        _httpClientInstanceSettings = httpClientInstanceSettings.AddCommonOrDefaultSettings(_httpClientSharedSettings!);
-        _torInstanceSettings = torInstanceSettings;
+        _httpClientInstanceSettings = httpClientSettings.AddCommonOrDefaultSettings(_httpClientSharedSettings!);
+        _torInstanceSettings = torSettings;
 
-        _logger.LogInformation("[{Id}] Initializing Tor HTTP client with Tor on port {SocksPort}", Id, torInstanceSettings.SocksPort);
+        Log(LogLevel.Information, "Initializing Tor HTTP client with Tor on port {SocksPort}", torSettings.SocksPort);
 
-        var didConnect = await _torService!.StartAsync(torInstanceSettings, _logger.IsEnabled(LogLevel.Debug) ? s => { _logger.LogDebug("[{Id}] {Message}", Id, s); } : null, cancellationToken);
+        var didConnect = await _torService!.StartAsync(torSettings, _logger.IsEnabled(LogLevel.Debug) ? s => { Log(LogLevel.Debug, s); } : null, cancellationToken);
         if (!didConnect)
         {
             Error = new Exception("Failed to start Tor service", _torService.Error);
             Status = TorHttpClientStatus.FailedToConnectToTor;
 
-            _logger.LogError("[{Id}] {Error}", Id, _torService.Error?.GetMessages());
+            Log(LogLevel.Error, "Failed to start Tor service: {Error}", _torService.Error?.GetMessages());
             return false;
         }
         else if (_torService.Status != TorServiceStatus.Connected)
@@ -121,7 +131,7 @@ public class TorHttpClient : ITorHttpClient
             Error = new Exception($"Tor service is not connected: {_torService.Status}", _torService.Error);
             Status = TorHttpClientStatus.FailedToConnectToTor;
 
-            _logger.LogError("[{Id}] {Error}", Id, Error.GetMessages());
+            Log(LogLevel.Error, "Failed to connect to Tor service: {Error}", Error.GetMessages());
             return false;
         }
 
@@ -131,7 +141,7 @@ public class TorHttpClient : ITorHttpClient
         Status = TorHttpClientStatus.ConnectedToTor;
 
         _requestHandler = new TorHttpClientHandler(
-            TorHttpClientHandlerSettings.FromCommonOrDefaultSettings(_httpClientInstanceSettings, torInstanceSettings.SocksPort),
+            TorHttpClientHandlerSettings.FromCommonOrDefaultSettings(_httpClientInstanceSettings, torSettings.SocksPort),
             this);
 
         _httpClient = new HttpClient(_requestHandler, disposeHandler: true)
@@ -160,8 +170,8 @@ public class TorHttpClient : ITorHttpClient
 
         if (!string.IsNullOrWhiteSpace(_httpClientInstanceSettings.UserAgent)) _ = _httpClient.SetHeader("User-Agent", _httpClientInstanceSettings.UserAgent!);
 
-        _logger.LogInformation("[{Id}] Tor HTTP client initialized and connected via Tor on port {SocksPort} with IP address {IPAddress}", Id, torInstanceSettings.SocksPort, IPAddress);
-        if (_logger.IsEnabled(LogLevel.Debug)) _logger.LogDebug("[{Id}] Tor HTTP client data directory: {DataDirectory}", Id, torInstanceSettings.DataDirectory ?? "(default)");
+        Log(LogLevel.Information, "Tor HTTP client initialized and connected via Tor on port {SocksPort} with IP address {IPAddress}", torSettings.SocksPort, IPAddress);
+        Log(LogLevel.Debug, "Tor HTTP client data directory: {DataDirectory}", torSettings.DataDirectory ?? "(default)");
 
         Status = TorHttpClientStatus.ClientIsReady;
 
@@ -185,7 +195,7 @@ public class TorHttpClient : ITorHttpClient
             Error = new Exception("Failed to request new Tor identity", _torService.Error);
             Status = TorHttpClientStatus.FailedToConnectToTor;
 
-            _logger.LogError("[{Id}] {Error}", Id, Error.GetMessages());
+            Log(LogLevel.Error, "Failed to request new Tor identity: {Error}", Error.GetMessages());
             result = false;
         }
         else
@@ -225,4 +235,13 @@ public class TorHttpClient : ITorHttpClient
     {
         Dispose(disposing: false);
     }
+
+    private void Log(LogLevel level, string? message, params object?[] args)
+    {
+#pragma warning disable CA2254
+        if (_logger.IsEnabled(level)) _logger.Log(level, (Id != NoId ? $"[{Id}] " : "") + message, args);
+#pragma warning restore CA2254
+    }
+
+    #endregion 
 }
