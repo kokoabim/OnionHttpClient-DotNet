@@ -21,4 +21,9 @@ public class TorInstanceSettings
 
         if (useRandomDataDirectory) DataDirectory ??= Path.Combine(Path.GetTempPath(), nameof(OnionHttpClient), Randoms.UniqueString(8));
     }
+
+    /// <summary>
+    /// Gets the default Tor instance settings, which uses port 9050 for SocksPort, port 9051 for ControlPort, and no DataDirectory (which lets Tor use its own default).
+    /// </summary>
+    public static TorInstanceSettings GetDefaults() => new(useRandomPorts: false, useRandomDataDirectory: false);
 }

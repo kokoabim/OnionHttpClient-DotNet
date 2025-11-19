@@ -55,6 +55,40 @@ public class MultiTorHttpClient : IMultiTorHttpClient
         GC.SuppressFinalize(this);
     }
 
+    public IHttpClientResponse GetResponse(HttpRequestMessage request, CancellationToken cancellationToken = default)
+    {
+        var httpClientResponse = new HttpClientResponse(request);
+
+        try
+        {
+            var response = Send(request, cancellationToken);
+            httpClientResponse.SetHttpResponse(response);
+        }
+        catch (Exception ex)
+        {
+            httpClientResponse.Exception = ex;
+        }
+
+        return httpClientResponse;
+    }
+
+    public async Task<IHttpClientResponse> GetResponseAsync(HttpRequestMessage request, CancellationToken cancellationToken = default)
+    {
+        var httpClientResponse = new HttpClientResponse(request);
+
+        try
+        {
+            var response = await SendAsync(request, cancellationToken);
+            httpClientResponse.SetHttpResponse(response);
+        }
+        catch (Exception ex)
+        {
+            httpClientResponse.Exception = ex;
+        }
+
+        return httpClientResponse;
+    }
+
     public async Task<bool> InitializeAsync(MultiTorHttpClientSettings multiTorHttpClientSettings, HttpClientCommonSettings httpClientCommonSettings, CancellationToken cancellationToken = default)
     {
         if (Status != TorHttpClientStatus.Uninitialized) throw new InvalidOperationException($"Multi Tor HTTP client has already been initialized");

@@ -21,6 +21,10 @@ public interface ITorHttpClient : IHttpClient
     /// <summary>
     /// Initializes the Tor HTTP client with the specified settings.
     /// </summary>
+    Task<bool> InitializeAsync(HttpClientInstanceSettings httpClientSettings, TorInstanceSettings torSettings, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Initializes the Tor HTTP client with the specified settings.
+    /// </summary>
     Task<bool> InitializeAsync(int id, HttpClientInstanceSettings httpClientSettings, TorInstanceSettings torSettings, CancellationToken cancellationToken = default);
     /// <summary>
     /// Requests new Tor circuits (new identity). Tor MAY rate-limit its response to this signal.
@@ -73,6 +77,40 @@ public class TorHttpClient : ITorHttpClient
     {
         Dispose(disposing: true);
         GC.SuppressFinalize(this);
+    }
+
+    public IHttpClientResponse GetResponse(HttpRequestMessage request, CancellationToken cancellationToken = default)
+    {
+        var httpClientResponse = new HttpClientResponse(request);
+
+        try
+        {
+            var response = Send(request, cancellationToken);
+            httpClientResponse.SetHttpResponse(response);
+        }
+        catch (Exception ex)
+        {
+            httpClientResponse.Exception = ex;
+        }
+
+        return httpClientResponse;
+    }
+
+    public async Task<IHttpClientResponse> GetResponseAsync(HttpRequestMessage request, CancellationToken cancellationToken = default)
+    {
+        var httpClientResponse = new HttpClientResponse(request);
+
+        try
+        {
+            var response = await SendAsync(request, cancellationToken);
+            httpClientResponse.SetHttpResponse(response);
+        }
+        catch (Exception ex)
+        {
+            httpClientResponse.Exception = ex;
+        }
+
+        return httpClientResponse;
     }
 
     /// <summary>
@@ -158,7 +196,7 @@ public class TorHttpClient : ITorHttpClient
         {
             _httpClient.BaseAddress = new Uri(_httpClientInstanceSettings.BaseAddress!);
 
-            if (_httpClientInstanceSettings.SetBaseAddressRelatedHeaders)
+            if (_httpClientInstanceSettings.SetBaseAddressRelatedHeaders.HasValue && _httpClientInstanceSettings.SetBaseAddressRelatedHeaders.Value)
             {
                 _ = _httpClient.SetHeader("Host", _httpClient.BaseAddress!.Host);
                 _ = _httpClient.SetHeader("Origin", _httpClient.BaseAddress!.GetLeftPart(UriPartial.Authority));

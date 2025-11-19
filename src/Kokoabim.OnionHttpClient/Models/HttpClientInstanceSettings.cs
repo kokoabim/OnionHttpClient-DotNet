@@ -7,17 +7,21 @@ public class HttpClientInstanceSettings : HttpClientCommonSettings
     public CookieContainer? CookieContainer { get; protected set; }
     public string? UserAgent { get; set; }
 
+    public HttpClientInstanceSettings() { }
+
+    public HttpClientInstanceSettings(string baseAddress) : base(baseAddress) { }
+
     public HttpClientInstanceSettings AddCommonOrDefaultSettings(HttpClientCommonSettings commonSettings)
     {
         // ! NOTE: do not set instance-specific settings like CookieContainer or UserAgent
 
-        Accept = commonSettings.Accept ?? DefaultAccept;
-        AllowAutoRedirect = commonSettings.AllowAutoRedirect ?? DefaultAllowAutoRedirect;
-        AutomaticDecompression = commonSettings.AutomaticDecompression ?? DefaultAutomaticDecompression;
-        BaseAddress = commonSettings.BaseAddress;
-        SslProtocols = commonSettings.SslProtocols ?? DefaultSslProtocols;
-        Timeout = commonSettings.Timeout ?? DefaultTimeout;
-        UseCookies = commonSettings.UseCookies ?? DefaultUseCookies;
+        Accept ??= commonSettings.Accept ?? DefaultAccept;
+        AllowAutoRedirect ??= commonSettings.AllowAutoRedirect ?? DefaultAllowAutoRedirect;
+        AutomaticDecompression ??= commonSettings.AutomaticDecompression ?? DefaultAutomaticDecompression;
+        BaseAddress ??= commonSettings.BaseAddress;
+        SslProtocols ??= commonSettings.SslProtocols ?? DefaultSslProtocols;
+        Timeout ??= commonSettings.Timeout ?? DefaultTimeout;
+        UseCookies ??= commonSettings.UseCookies ?? DefaultUseCookies;
 
         if (commonSettings.UseCookies.HasValue && commonSettings.UseCookies.Value) CookieContainer = new CookieContainer();
 
@@ -26,7 +30,7 @@ public class HttpClientInstanceSettings : HttpClientCommonSettings
             DefaultHeaders[kvp.Key] = new HashSet<string>(kvp.Value, StringComparer.OrdinalIgnoreCase);
         }
 
-        SetBaseAddressRelatedHeaders = commonSettings.SetBaseAddressRelatedHeaders;
+        SetBaseAddressRelatedHeaders ??= commonSettings.SetBaseAddressRelatedHeaders ?? DefaultSetBaseAddressRelatedHeaders;
 
         return this;
     }

@@ -17,17 +17,23 @@ public class HttpClientCommonSettings
     public DecompressionMethods? AutomaticDecompression { get; set; }
     public string? BaseAddress { get; set; }
     public Dictionary<string, HashSet<string>> DefaultHeaders { get; set; } = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
+    public static TimeSpan DefaultTimeout => TimeSpan.FromSeconds(100);
 
     /// <summary>
     /// If true, sets Host, Origin, and Referer headers based on BaseAddress.
     /// </summary>
-    public bool SetBaseAddressRelatedHeaders { get; set; }
+    public bool? SetBaseAddressRelatedHeaders { get; set; }
 
     public SslProtocols? SslProtocols { get; set; }
     public TimeSpan? Timeout { get; set; }
     public bool? UseCookies { get; set; }
 
-    public static readonly TimeSpan DefaultTimeout = TimeSpan.FromSeconds(100);
+    public HttpClientCommonSettings() { }
+
+    public HttpClientCommonSettings(string baseAddress)
+    {
+        BaseAddress = baseAddress;
+    }
 
     public static HttpClientCommonSettings GetDefault() =>
         new()
