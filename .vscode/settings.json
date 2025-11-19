@@ -1,0 +1,13 @@
+{
+    "dotnet.defaultSolution": "${workspaceFolder}/Kokoabim.OnionHttpClient.sln",
+    "files.exclude": {
+        "**/bin/": true,
+        "**/obj/": true,
+    },
+    "cSpell.words": [
+        "GETINFO",
+        "NEWNYM",
+        "onionhttpclient",
+        "torrc"
+    ],
+}

@@ -1,0 +1,6 @@
+**/.DS_Store
+**/bin/
+**/obj/
+
+**/*.secrets.json
+**/torrc-defaults
