@@ -245,7 +245,7 @@ public class TorService : ITorService
         }
 
         _runningTask = _executor.ExecuteAsync(
-            _torSharedSettings.ExecutablePath,
+            _torSharedSettings.ExecutablePath.Value ?? throw new InvalidOperationException("Tor executable path is not set"),
             GenerateArguments(torInstanceSettings),
             null,
             internalOutputHandler,

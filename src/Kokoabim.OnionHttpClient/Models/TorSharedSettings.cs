@@ -7,5 +7,5 @@ public class TorSharedSettings
     public string ControlPassword { get; set; } = null!;
     public string CurrentDirectory { get; } = AppContext.BaseDirectory;
     public string DefaultConfigPath { get; set; } = null!;
-    public string ExecutablePath { get; set; } = null!;
+    public OSValue<string> ExecutablePath { get; set; } = new() { Linux = "/usr/bin/tor", MacOS = "/opt/homebrew/bin/tor" };
 }

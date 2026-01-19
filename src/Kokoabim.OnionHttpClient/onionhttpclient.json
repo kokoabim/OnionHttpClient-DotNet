@@ -3,7 +3,10 @@
         "Arguments": "--defaults-torrc \"{cwd}/torrc-defaults\" --ControlPort {controlPort} --SocksPort {socksPort}",
         "ControlPassword": "",
         "DefaultConfigPath": "torrc-defaults",
-        "ExecutablePath": "/opt/homebrew/bin/tor"
+        "ExecutablePath": {
+            "Linux": "/usr/bin/tor",
+            "MacOS": "/opt/homebrew/bin/tor"
+        }
     },
     "HttpClient": {
         "UserAgents": [
