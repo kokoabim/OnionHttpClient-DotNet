@@ -88,7 +88,11 @@ public class TorService : ITorService
     /// </summary>
     public async Task<TorClientStatus> GetStatusAsync(CancellationToken cancellationToken = default)
     {
-        if (!IsRunning) return new TorClientStatus();
+        if (!IsRunning) return new TorClientStatus()
+        {
+            Error = Error ?? new InvalidOperationException("Tor service is not running"),
+            TorServiceStatus = Status
+        };
 
         try
         {
@@ -103,6 +107,7 @@ public class TorService : ITorService
                 IPAddress = jsonDoc.RootElement.GetProperty("IP").GetString() ?? string.Empty,
                 IsConnected = jsonDoc.RootElement.GetProperty("IsTor").GetBoolean(),
                 IsRunning = true,
+                TorServiceStatus = Status
             };
         }
         catch (Exception ex)
@@ -111,6 +116,7 @@ public class TorService : ITorService
             {
                 Error = ex,
                 IsRunning = true,
+                TorServiceStatus = Status
             };
         }
     }
@@ -295,7 +301,7 @@ public class TorService : ITorService
         return args;
     }
 
-    #endregion 
+    #endregion
 
     #region IDisposable
 
@@ -317,5 +323,5 @@ public class TorService : ITorService
         GC.SuppressFinalize(this);
     }
 
-    #endregion 
+    #endregion
 }

@@ -8,6 +8,7 @@ public interface IMultiTorHttpClientFactory : IDisposable
 {
     IMultiTorHttpClient Create(HttpClientSharedSettings httpClientSharedSettings);
     Task<(bool DidInitialize, IMultiTorHttpClient MultiTorHttpClient)> CreateAndInitializeOrGetAsync(string id, MultiTorHttpClientSettings multiTorHttpClientSettings, HttpClientSharedSettings httpClientSharedSettings, CancellationToken cancellationToken = default);
+    IMultiTorHttpClient? GetOrDefault(string id);
 }
 
 public class MultiTorHttpClientFactory : IMultiTorHttpClientFactory
@@ -38,6 +39,8 @@ public class MultiTorHttpClientFactory : IMultiTorHttpClientFactory
 
         return (instance.Status == TorHttpClientStatus.ClientIsReady, instance);
     }
+
+    public IMultiTorHttpClient? GetOrDefault(string id) => _instances.GetValueOrDefault(id);
 
     ~MultiTorHttpClientFactory()
     {

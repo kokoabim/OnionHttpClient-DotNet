@@ -14,6 +14,10 @@ public interface IMultiTorHttpClient : IHttpClient
     /// </summary>
     Task DisconnectAsync(CancellationToken cancellationToken = default);
     /// <summary>
+    /// Gets information about the Multi Tor HTTP client and its connection to the Tor network.
+    /// </summary>
+    Task<MultiTorHttpClientInfo> GetMultiTorHttpClientInfoAsync(CancellationToken cancellationToken = default);
+    /// <summary>
     /// Initializes the Multi Tor HTTP client with the specified settings.
     /// </summary>
     Task<bool> InitializeAsync(MultiTorHttpClientSettings multiTorHttpClientSettings, HttpClientCommonSettings httpClientCommonSettings, CancellationToken cancellationToken = default);
@@ -34,7 +38,6 @@ public class MultiTorHttpClient : IMultiTorHttpClient
 
     private volatile int _clientIndex = -1;
     private readonly List<ITorHttpClient> _clients = [];
-    private HttpClientCommonSettings? _httpClientCommonSettings;
     private readonly ILogger<MultiTorHttpClient> _logger;
     private MultiTorHttpClientSettings? _multiTorHttpClientSettings;
     private readonly ITorHttpClientFactory _torHttpClientFactory;
@@ -65,6 +68,30 @@ public class MultiTorHttpClient : IMultiTorHttpClient
     {
         Dispose(disposing: true);
         GC.SuppressFinalize(this);
+    }
+
+    /// <summary>
+    /// Gets information about the Multi Tor HTTP client and its connection to the Tor network.
+    /// </summary>
+    public async Task<MultiTorHttpClientInfo> GetMultiTorHttpClientInfoAsync(CancellationToken cancellationToken = default)
+    {
+        if (Status != TorHttpClientStatus.ClientIsReady) return new MultiTorHttpClientInfo
+        {
+            ClientCount = ClientCount,
+            Error = new InvalidOperationException("Multi Tor HTTP client is not ready"),
+            RequestCount = RequestCount,
+            Status = Status
+        };
+
+        var torHttpClientsInfo = await Task.WhenAll(_clients.Select(c => c.GetTorHttpClientInfoAsync(cancellationToken)));
+
+        return new MultiTorHttpClientInfo
+        {
+            ClientCount = ClientCount,
+            RequestCount = RequestCount,
+            Status = Status,
+            TorHttpClientsInfo = torHttpClientsInfo
+        };
     }
 
     public IHttpClientResponse GetResponse(HttpRequestMessage request, CancellationToken cancellationToken = default)
@@ -109,7 +136,6 @@ public class MultiTorHttpClient : IMultiTorHttpClient
         Status = TorHttpClientStatus.ConnectingToTor;
 
         _multiTorHttpClientSettings = multiTorHttpClientSettings;
-        _httpClientCommonSettings = httpClientCommonSettings;
 
         _logger.LogInformation("Initializing Multi Tor HTTP client with {ClientCount} Tor HTTP clients using {BalanceStrategy} balance strategy", multiTorHttpClientSettings.ClientCount, multiTorHttpClientSettings.BalanceStrategy);
 
@@ -137,7 +163,7 @@ public class MultiTorHttpClient : IMultiTorHttpClient
         var initializedCount = tasks.Count(static t => t.Result.DidInitialize);
         var initializedAll = initializedCount == _multiTorHttpClientSettings.ClientCount;
 
-        Status = initializedAll ? TorHttpClientStatus.ConnectedToTor : TorHttpClientStatus.FailedToConnectToTor;
+        Status = initializedAll ? TorHttpClientStatus.ClientIsReady : TorHttpClientStatus.FailedToConnectToTor;
 
         _logger.LogInformation("Multi Tor HTTP client initialized {InitializedCount} of {ClientCount} Tor HTTP clients", initializedCount, _multiTorHttpClientSettings.ClientCount);
 

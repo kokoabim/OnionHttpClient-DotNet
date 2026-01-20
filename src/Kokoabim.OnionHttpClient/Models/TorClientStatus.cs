@@ -7,11 +7,12 @@ public class TorClientStatus
     public bool IsConnected { get; set; }
     public bool IsRunning { get; set; }
     public bool Success => IsRunning && IsConnected && Error == null;
+    public TorServiceStatus TorServiceStatus { get; set; }
 
     public override string ToString() =>
         Error != null
             ? Error.GetMessages()
             : !IsRunning
-            ? "Tor client is not running"
-            : $"Tor client is{(IsConnected ? "" : " not")} connected to the Tor network (IP address {IPAddress})";
+                ? "Tor client is not running"
+                : $"Tor client is{(IsConnected ? "" : " not")} connected to the Tor network (IP address {IPAddress})";
 }

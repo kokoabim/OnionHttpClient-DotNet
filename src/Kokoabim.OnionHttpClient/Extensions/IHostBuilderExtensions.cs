@@ -8,20 +8,27 @@ public static class IHostBuilderExtensions
 {
     public static IHostBuilder AddOnionHttpClient(this IHostBuilder hostBuilder)
     {
-        return hostBuilder.ConfigureAppConfiguration((hostContext, config) =>
+        return hostBuilder.ConfigureAppConfiguration(static (hostContext, config) =>
         {
+            var basePath = hostContext.HostingEnvironment.ContentRootPath;
+
+#if DEBUG
+            basePath = AppDomain.CurrentDomain.BaseDirectory;
+#endif
+
             _ = config
-                .SetBasePath(hostContext.HostingEnvironment.ContentRootPath)
+                .SetBasePath(basePath)
                 .AddJsonFile("onionhttpclient.json", optional: true, reloadOnChange: true)
                 .AddJsonFile("onionhttpclient.secrets.json", optional: true, reloadOnChange: true)
                 .AddEnvironmentVariables();
         })
-        .ConfigureServices((hostContext, services) =>
+        .ConfigureServices(static (hostContext, services) =>
         {
             _ = services
                 .AddOptions()
                 .Configure<TorSharedSettings>(hostContext.Configuration.GetSection("Tor"))
                 .Configure<HttpClientSharedSettings>(hostContext.Configuration.GetSection("HttpClient"))
+                .AddSingleton<IMultiTorHttpClientFactory, MultiTorHttpClientFactory>()
                 .AddScoped<ITorHttpClientFactory, TorHttpClientFactory>()
                 .AddScoped<IMultiTorHttpClient, MultiTorHttpClient>()
                 .AddScoped<ITorHttpClient, TorHttpClient>()

@@ -16,9 +16,9 @@ public interface ITorHttpClient : IHttpClient
     /// </summary>
     Task DisconnectAsync(CancellationToken cancellationToken = default);
     /// <summary>
-    /// Gets the status of the running Tor instance by calling https://check.torproject.org/api/ip (by default) and parsing its response.
+    /// Gets information about the Tor HTTP client and its connection to the Tor network.
     /// </summary>
-    Task<bool> GetTorClientStatusAsync(CancellationToken cancellationToken = default);
+    Task<TorHttpClientInfo> GetTorHttpClientInfoAsync(CancellationToken cancellationToken = default);
     /// <summary>
     /// Initializes the Tor HTTP client with the specified settings.
     /// </summary>
@@ -30,7 +30,8 @@ public interface ITorHttpClient : IHttpClient
     /// <summary>
     /// Requests new Tor circuits (new identity). Tor MAY rate-limit its response to this signal.
     /// </summary>
-    Task<bool> RequestCleanCircuitsAsync(CancellationToken cancellationToken = default);
+    /// <returns>Information about the Tor HTTP client and its connection to the Tor network.</returns>
+    Task<TorHttpClientInfo> RequestCleanCircuitsAsync(CancellationToken cancellationToken = default);
     /// <summary>
     /// Sets the cookies for the Tor HTTP client.
     /// </summary>
@@ -49,6 +50,7 @@ public class TorHttpClient : ITorHttpClient
     public int RequestCount => _requestHandler?.RequestCount ?? 0;
     public TorHttpClientStatus Status { get; private set; }
 
+    private bool _hasInitialized;
     private HttpClient? _httpClient;
     private HttpClientInstanceSettings? _httpClientInstanceSettings;
     private readonly HttpClientSharedSettings _httpClientSharedSettings;
@@ -120,24 +122,32 @@ public class TorHttpClient : ITorHttpClient
     }
 
     /// <summary>
-    /// Gets the status of the running Tor instance by calling https://check.torproject.org/api/ip (by default) and parsing its response.
+    /// Gets information about the Tor HTTP client and its connection to the Tor network.
     /// </summary>
-    public async Task<bool> GetTorClientStatusAsync(CancellationToken cancellationToken = default)
+    public async Task<TorHttpClientInfo> GetTorHttpClientInfoAsync(CancellationToken cancellationToken = default)
     {
-        if (Status == TorHttpClientStatus.Uninitialized) return false;
+        if (Status == TorHttpClientStatus.Uninitialized) return new TorHttpClientInfo
+        {
+            Error = new InvalidOperationException("Tor HTTP client is uninitialized"),
+            HttpClientStatus = TorHttpClientStatus.Uninitialized
+        };
 
         var torClientStatus = await _torService!.GetStatusAsync(cancellationToken);
 
         IPAddress = torClientStatus.IPAddress;
 
-        if (torClientStatus.Success) return true;
+        if (torClientStatus.Success)
+        {
+            Status = _hasInitialized ? TorHttpClientStatus.ClientIsReady : TorHttpClientStatus.ConnectedToTor;
+            return TorHttpClientInfo.Create(this, _torService, torClientStatus);
+        }
 
         Error = new Exception($"Tor HTTP client is not connected: {torClientStatus}", torClientStatus.Error);
         Status = TorHttpClientStatus.FailedToConnectToTor;
 
         Log(LogLevel.Error, "Failed to get Tor client status: {Error}", Error.GetMessages());
 
-        return false;
+        return TorHttpClientInfo.Create(this, _torService, torClientStatus);
     }
 
     /// <summary>
@@ -178,10 +188,8 @@ public class TorHttpClient : ITorHttpClient
             return false;
         }
 
-        var isTorConnected = await GetTorClientStatusAsync(cancellationToken);
-        if (!isTorConnected) return false;
-
-        Status = TorHttpClientStatus.ConnectedToTor;
+        var torHttpClientInfo = await GetTorHttpClientInfoAsync(cancellationToken);
+        if (!torHttpClientInfo.IsTorClientOK) return false;
 
         _requestHandler = new TorHttpClientHandler(
             TorHttpClientHandlerSettings.FromCommonOrDefaultSettings(_httpClientInstanceSettings, torSettings.SocksPort),
@@ -217,6 +225,7 @@ public class TorHttpClient : ITorHttpClient
         Log(LogLevel.Debug, "Tor HTTP client data directory: {DataDirectory}", torSettings.DataDirectory ?? "(default)");
 
         Status = TorHttpClientStatus.ClientIsReady;
+        _hasInitialized = true;
 
         return true;
     }
@@ -224,31 +233,32 @@ public class TorHttpClient : ITorHttpClient
     /// <summary>
     /// Requests new Tor circuits (new identity). Tor MAY rate-limit its response to this signal.
     /// </summary>
-    public async Task<bool> RequestCleanCircuitsAsync(CancellationToken cancellationToken = default)
+    /// <returns>Information about the Tor HTTP client and its connection to the Tor network.</returns>
+    public async Task<TorHttpClientInfo> RequestCleanCircuitsAsync(CancellationToken cancellationToken = default)
     {
-        if (Status != TorHttpClientStatus.ClientIsReady) throw new InvalidOperationException($"Tor HTTP client is not ready");
+        if (Status != TorHttpClientStatus.ClientIsReady) return new TorHttpClientInfo
+        {
+            Error = new InvalidOperationException("Tor HTTP client is not ready"),
+            HttpClientStatus = Status
+        };
 
         Status = TorHttpClientStatus.RequestingCleanCircuits;
 
-        bool result;
-
+        Exception? exception = null;
         var requestResult = await _torService!.RequestCleanCircuitsAsync(cancellationToken);
         if (!requestResult)
         {
-            Error = new Exception("Failed to request new Tor identity", _torService.Error);
-            Status = TorHttpClientStatus.FailedToConnectToTor;
-
-            Log(LogLevel.Error, "Failed to request new Tor identity: {Error}", Error.GetMessages());
-            result = false;
-        }
-        else
-        {
-            var isTorConnected = await GetTorClientStatusAsync(cancellationToken);
-            result = isTorConnected;
+            exception = new Exception("Failed to request new Tor identity", _torService.Error);
+            Log(LogLevel.Error, "{Error}", exception.GetMessages());
         }
 
-        Status = TorHttpClientStatus.ClientIsReady;
-        return result;
+        var torHttpClientInfo = await GetTorHttpClientInfoAsync(cancellationToken);
+
+        if (torHttpClientInfo.IsTorClientOK) Status = _hasInitialized ? TorHttpClientStatus.ClientIsReady : TorHttpClientStatus.ConnectedToTor;
+
+        if (exception is not null) Error = torHttpClientInfo.Error = exception;
+
+        return torHttpClientInfo;
     }
 
     public HttpResponseMessage Send(HttpRequestMessage request, CancellationToken cancellationToken)
