@@ -1,3 +1,4 @@
+using System.Net;
 using Microsoft.Extensions.Logging;
 
 namespace Kokoabim.OnionHttpClient;
@@ -12,7 +13,16 @@ public interface IMultiTorHttpClient : IHttpClient
     /// Stops the running Tor instances.
     /// </summary>
     Task DisconnectAsync(CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Initializes the Multi Tor HTTP client with the specified settings.
+    /// </summary>
     Task<bool> InitializeAsync(MultiTorHttpClientSettings multiTorHttpClientSettings, HttpClientCommonSettings httpClientCommonSettings, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Sets the cookies for the Multi Tor HTTP client.
+    /// </summary>
+    void SetCookies(IEnumerable<Cookie> cookies);
+    bool SetHeader(string name, string value, bool overwrite = true);
+    bool SetHeader(string name, IEnumerable<string> values, bool overwrite = true);
 }
 
 public class MultiTorHttpClient : IMultiTorHttpClient
@@ -34,6 +44,8 @@ public class MultiTorHttpClient : IMultiTorHttpClient
         _logger = logger;
         _torHttpClientFactory = torHttpClientFactory;
     }
+
+    #region methods
 
     /// <summary>
     /// Stops the running Tor instances.
@@ -184,6 +196,40 @@ public class MultiTorHttpClient : IMultiTorHttpClient
         return await client.SendAsync(request, cancellationToken);
     }
 
+    /// <summary>
+    /// Sets the cookies for the Multi Tor HTTP client.
+    /// </summary>
+    public void SetCookies(IEnumerable<Cookie> cookies)
+    {
+        foreach (var client in _clients) client.SetCookies(cookies);
+    }
+
+    public bool SetHeader(string name, string value, bool overwrite = true)
+    {
+        var result = true;
+
+        foreach (var client in _clients)
+        {
+            var didSet = client.SetHeader(name, value, overwrite);
+            if (!didSet) result = false;
+        }
+
+        return result;
+    }
+
+    public bool SetHeader(string name, IEnumerable<string> values, bool overwrite = true)
+    {
+        var result = true;
+
+        foreach (var client in _clients)
+        {
+            var didSet = client.SetHeader(name, values, overwrite);
+            if (!didSet) result = false;
+        }
+
+        return result;
+    }
+
     protected virtual void Dispose(bool disposing)
     {
         if (disposing)
@@ -204,4 +250,6 @@ public class MultiTorHttpClient : IMultiTorHttpClient
         MultiTorHttpClientBalanceStrategy.Random => Random.Shared.Next(0, _clients.Count),
         _ => throw new NotSupportedException($"Balance strategy {_multiTorHttpClientSettings.BalanceStrategy} is not supported"),
     };
+
+    #endregion
 }

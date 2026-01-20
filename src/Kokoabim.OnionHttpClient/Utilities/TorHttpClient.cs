@@ -1,3 +1,4 @@
+using System.Net;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -30,6 +31,12 @@ public interface ITorHttpClient : IHttpClient
     /// Requests new Tor circuits (new identity). Tor MAY rate-limit its response to this signal.
     /// </summary>
     Task<bool> RequestCleanCircuitsAsync(CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Sets the cookies for the Tor HTTP client.
+    /// </summary>
+    void SetCookies(IEnumerable<Cookie> cookies);
+    bool SetHeader(string name, string value, bool overwrite = true);
+    bool SetHeader(string name, IEnumerable<string> values, bool overwrite = true);
 }
 
 public class TorHttpClient : ITorHttpClient
@@ -47,7 +54,6 @@ public class TorHttpClient : ITorHttpClient
     private readonly HttpClientSharedSettings _httpClientSharedSettings;
     private readonly ILogger<TorHttpClient> _logger;
     private TorHttpClientHandler? _requestHandler;
-    private TorInstanceSettings? _torInstanceSettings;
     private ITorService? _torService;
 
     public TorHttpClient(ILogger<TorHttpClient> logger, IOptions<HttpClientSharedSettings> sharedSettings, ITorService torService)
@@ -137,8 +143,8 @@ public class TorHttpClient : ITorHttpClient
     /// <summary>
     /// Initializes the Tor HTTP client with the specified settings.
     /// </summary>
-    public Task<bool> InitializeAsync(HttpClientInstanceSettings httpClientInstanceSettings, TorInstanceSettings torInstanceSettings, CancellationToken cancellationToken = default) =>
-        InitializeAsync(NoId, httpClientInstanceSettings, torInstanceSettings, cancellationToken);
+    public Task<bool> InitializeAsync(HttpClientInstanceSettings httpClientSettings, TorInstanceSettings torSettings, CancellationToken cancellationToken = default) =>
+        InitializeAsync(NoId, httpClientSettings, torSettings, cancellationToken);
 
     /// <summary>
     /// Initializes the Tor HTTP client with the specified settings.
@@ -151,7 +157,6 @@ public class TorHttpClient : ITorHttpClient
         Status = TorHttpClientStatus.ConnectingToTor;
 
         _httpClientInstanceSettings = httpClientSettings.AddCommonOrDefaultSettings(_httpClientSharedSettings!);
-        _torInstanceSettings = torSettings;
 
         Log(LogLevel.Information, "Initializing Tor HTTP client with Tor on port {SocksPort}", torSettings.SocksPort);
 
@@ -260,6 +265,30 @@ public class TorHttpClient : ITorHttpClient
             : _httpClient!.SendAsync(request, cancellationToken);
     }
 
+    /// <summary>
+    /// Sets the cookies for the Tor HTTP client.
+    /// </summary>
+    public void SetCookies(IEnumerable<Cookie> cookies)
+    {
+        if (_requestHandler?.UseCookies != true) return;
+
+        foreach (var cookie in cookies) _requestHandler.CookieContainer.Add(cookie);
+    }
+
+    public bool SetHeader(string name, string value, bool overwrite = true)
+    {
+        return _httpClient == null
+            ? throw new InvalidOperationException("Tor HTTP client is not initialized")
+            : _httpClient.SetHeader(name, value, overwrite);
+    }
+
+    public bool SetHeader(string name, IEnumerable<string> values, bool overwrite = true)
+    {
+        return _httpClient == null
+            ? throw new InvalidOperationException("Tor HTTP client is not initialized")
+            : _httpClient.SetHeader(name, values, overwrite);
+    }
+
     protected virtual void Dispose(bool disposing)
     {
         if (disposing)
@@ -281,5 +310,5 @@ public class TorHttpClient : ITorHttpClient
 #pragma warning restore CA2254
     }
 
-    #endregion 
+    #endregion
 }

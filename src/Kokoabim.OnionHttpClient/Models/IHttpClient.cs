@@ -1,5 +1,3 @@
-using System.Net.Http.Headers;
-
 namespace Kokoabim.OnionHttpClient;
 
 public interface IHttpClient : IDisposable

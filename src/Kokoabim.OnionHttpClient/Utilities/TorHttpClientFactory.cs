@@ -10,6 +10,14 @@ public interface ITorHttpClientFactory : IDisposable
     /// </summary>
     ITorHttpClient Create();
     /// <summary>
+    /// Creates and initializes a Tor HTTP client using shared settings provided in the constructor, with random Tor settings and a random User-Agent.
+    /// </summary>
+    Task<(bool DidInitialize, ITorHttpClient TorHttpClient)> CreateAndInitializeAsync(CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Creates and initializes a Tor HTTP client with specified Tor settings, using shared settings provided in the constructor, with a random User-Agent.
+    /// </summary>
+    Task<(bool DidInitialize, ITorHttpClient TorHttpClient)> CreateAndInitializeAsync(TorInstanceSettings torSettings, CancellationToken cancellationToken = default);
+    /// <summary>
     /// Creates and initializes a Tor HTTP client with random Tor settings and a random User-Agent.
     /// </summary>
     Task<(bool DidInitialize, ITorHttpClient TorHttpClient)> CreateAndInitializeAsync(HttpClientCommonSettings commonSettings, CancellationToken cancellationToken = default);
@@ -53,12 +61,23 @@ public class TorHttpClientFactory : ITorHttpClientFactory
     }
 
     /// <summary>
+    /// Creates and initializes a Tor HTTP client using shared settings provided in the constructor, with random Tor settings and a random User-Agent.
+    /// </summary>
+    public Task<(bool DidInitialize, ITorHttpClient TorHttpClient)> CreateAndInitializeAsync(CancellationToken cancellationToken = default) =>
+        CreateAndInitializeAsync(new TorInstanceSettings(), cancellationToken);
+
+    /// <summary>
+    /// Creates and initializes a Tor HTTP client with specified Tor settings, using shared settings provided in the constructor, with a random User-Agent.
+    /// </summary>
+    public Task<(bool DidInitialize, ITorHttpClient TorHttpClient)> CreateAndInitializeAsync(TorInstanceSettings torSettings, CancellationToken cancellationToken = default) =>
+        CreateAndInitializeAsync(HttpClientInstanceSettings.CreateWithCommonOrDefaultSettings(_httpClientSharedSettings, GetRandomUserAgent()), torSettings, cancellationToken);
+
+    /// <summary>
     /// Creates and initializes a Tor HTTP client with random Tor settings and a random User-Agent.
     /// </summary>
     public Task<(bool DidInitialize, ITorHttpClient TorHttpClient)> CreateAndInitializeAsync(HttpClientInstanceSettings instanceSettings, CancellationToken cancellationToken = default)
     {
         instanceSettings.UserAgent = _httpClientSharedSettings.UserAgents[_random.Next(_httpClientSharedSettings.UserAgents.Length)];
-
         return CreateAndInitializeAsync(instanceSettings, new TorInstanceSettings(), cancellationToken);
     }
 
@@ -66,13 +85,13 @@ public class TorHttpClientFactory : ITorHttpClientFactory
     /// Creates and initializes a Tor HTTP client with random Tor settings and a random User-Agent.
     /// </summary>
     public Task<(bool DidInitialize, ITorHttpClient TorHttpClient)> CreateAndInitializeAsync(HttpClientCommonSettings commonSettings, CancellationToken cancellationToken = default) =>
-        CreateAndInitializeAsync(HttpClientInstanceSettings.CreateWithCommonOrDefaultSettings(commonSettings, _httpClientSharedSettings.UserAgents[_random.Next(_httpClientSharedSettings.UserAgents.Length)]), new TorInstanceSettings(), cancellationToken);
+        CreateAndInitializeAsync(HttpClientInstanceSettings.CreateWithCommonOrDefaultSettings(commonSettings, GetRandomUserAgent()), new TorInstanceSettings(), cancellationToken);
 
     /// <summary>
     /// Creates and initializes a Tor HTTP client.
     /// </summary>
     public Task<(bool DidInitialize, ITorHttpClient TorHttpClient)> CreateAndInitializeAsync(HttpClientCommonSettings commonSettings, TorInstanceSettings torSettings, CancellationToken cancellationToken = default) =>
-        CreateAndInitializeAsync(HttpClientInstanceSettings.CreateWithCommonOrDefaultSettings(commonSettings, _httpClientSharedSettings.UserAgents[_random.Next(_httpClientSharedSettings.UserAgents.Length)]), torSettings, cancellationToken);
+        CreateAndInitializeAsync(HttpClientInstanceSettings.CreateWithCommonOrDefaultSettings(commonSettings, GetRandomUserAgent()), torSettings, cancellationToken);
 
     /// <summary>
     /// Creates and initializes a Tor HTTP client.
@@ -89,6 +108,8 @@ public class TorHttpClientFactory : ITorHttpClientFactory
     {
         Dispose(disposing: false);
     }
+
+    private string GetRandomUserAgent() => _httpClientSharedSettings.UserAgents[_random.Next(_httpClientSharedSettings.UserAgents.Length)];
 
     #region IDisposable
 
@@ -109,5 +130,5 @@ public class TorHttpClientFactory : ITorHttpClientFactory
         GC.SuppressFinalize(this);
     }
 
-    #endregion 
+    #endregion
 }
