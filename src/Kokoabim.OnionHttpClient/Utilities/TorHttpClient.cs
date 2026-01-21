@@ -134,6 +134,8 @@ public class TorHttpClient : ITorHttpClient
 
         var torClientStatus = await _torService!.GetStatusAsync(cancellationToken);
 
+        Log(LogLevel.Information, "Tor client status: {TorClientStatus}", torClientStatus);
+
         IPAddress = torClientStatus.IPAddress;
 
         if (torClientStatus.Success)
@@ -243,6 +245,8 @@ public class TorHttpClient : ITorHttpClient
         };
 
         Status = TorHttpClientStatus.RequestingCleanCircuits;
+
+        Log(LogLevel.Information, "Requesting clean Tor HTTP client circuits");
 
         Exception? exception = null;
         var requestResult = await _torService!.RequestCleanCircuitsAsync(cancellationToken);
