@@ -22,6 +22,11 @@ public interface IMultiTorHttpClient : IHttpClient
     /// </summary>
     Task<bool> InitializeAsync(MultiTorHttpClientSettings multiTorHttpClientSettings, HttpClientCommonSettings httpClientCommonSettings, CancellationToken cancellationToken = default);
     /// <summary>
+    /// Requests new Tor circuits (new identity). Tor MAY rate-limit its response to this signal.
+    /// </summary>
+    /// <returns>Information about the Tor HTTP client and its connection to the Tor network.</returns>
+    Task<MultiTorHttpClientInfo> RequestCleanCircuitsAsync(CancellationToken cancellationToken = default);
+    /// <summary>
     /// Sets the cookies for the Multi Tor HTTP client.
     /// </summary>
     void SetCookies(IEnumerable<Cookie> cookies);
@@ -168,6 +173,31 @@ public class MultiTorHttpClient : IMultiTorHttpClient
         _logger.LogInformation("Multi Tor HTTP client initialized {InitializedCount} of {ClientCount} Tor HTTP clients", initializedCount, _multiTorHttpClientSettings.ClientCount);
 
         return initializedAll;
+    }
+
+    /// <summary>
+    /// Requests new Tor circuits (new identity). Tor MAY rate-limit its response to this signal.
+    /// </summary>
+    /// <returns>Information about the Tor HTTP client and its connection to the Tor network.</returns>
+    public async Task<MultiTorHttpClientInfo> RequestCleanCircuitsAsync(CancellationToken cancellationToken = default)
+    {
+        if (Status != TorHttpClientStatus.ClientIsReady) return new MultiTorHttpClientInfo
+        {
+            ClientCount = ClientCount,
+            Error = new InvalidOperationException("Multi Tor HTTP client is not ready"),
+            RequestCount = RequestCount,
+            Status = Status
+        };
+
+        var torHttpClientsInfo = await Task.WhenAll(_clients.Select(c => c.RequestCleanCircuitsAsync(cancellationToken)));
+
+        return new MultiTorHttpClientInfo
+        {
+            ClientCount = ClientCount,
+            RequestCount = RequestCount,
+            Status = Status,
+            TorHttpClientsInfo = torHttpClientsInfo
+        };
     }
 
     public HttpResponseMessage Send(HttpRequestMessage request, CancellationToken cancellationToken = default)
