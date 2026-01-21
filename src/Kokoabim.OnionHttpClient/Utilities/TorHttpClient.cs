@@ -307,8 +307,8 @@ public class TorHttpClient : ITorHttpClient
     {
         if (disposing)
         {
-            _httpClient?.Dispose();
             _torService?.Dispose();
+            _httpClient?.Dispose();
         }
     }
 
