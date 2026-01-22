@@ -43,6 +43,8 @@ Manages an internal HTTP client and Tor service.
 using Kokoabim.OnionHttpClient;
 
 hostBuilder.AddOnionHttpClient();
+// --- OR ---
+serviceCollection.AddOnionHttpClient();
 
 ...
 
@@ -53,10 +55,12 @@ var httpClientSettings = new HttpClientInstanceSettings()
 
 var torSettings = new TorInstanceSettings();
 
-using var torHttpClient = host.Services.GetRequiredService<ITorHttpClient>();
+using var torHttpClient = services.GetRequiredService<ITorHttpClient>();
 await torHttpClient.InitializeAsync(httpClientSettings, torSettings);
 
-var response = await torHttpClient.SendAsync("https://torproject.org");
+var response = await torHttpClient.GetResponseAsync(...);
+// --- OR ---
+var response = await torHttpClient.SendAsync(...);
 
 ...
 
@@ -71,6 +75,8 @@ Manages multiple internal HTTP clients and Tor services and balances requests be
 using Kokoabim.OnionHttpClient;
 
 hostBuilder.AddOnionHttpClient();
+// --- OR ---
+serviceCollection.AddOnionHttpClient();
 
 ...
 
@@ -86,10 +92,12 @@ var httpClientCommonSettings = new HttpClientCommonSettings()
     ...
 };
 
-using var multiTorHttpClient = host.Services.GetRequiredService<IMultiTorHttpClient>();
+using var multiTorHttpClient = services.GetRequiredService<IMultiTorHttpClient>();
 await multiTorHttpClient.InitializeAsync(multiTorHttpClientSettings, httpClientCommonSettings);
 
-var response = await multiTorHttpClient.SendAsync("https://torproject.org");
+var response = await multiTorHttpClient.GetResponseAsync(...);
+// --- OR ---
+var response = await multiTorHttpClient.SendAsync(...);
 
 ...
 

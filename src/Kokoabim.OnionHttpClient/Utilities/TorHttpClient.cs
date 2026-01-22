@@ -74,16 +74,22 @@ public class TorHttpClient : ITorHttpClient
     {
         if (Status == TorHttpClientStatus.Uninitialized) return;
 
+        Log(LogLevel.Information, "Disconnecting Tor HTTP client");
+
         _ = await _torService!.StopAsync(cancellationToken);
 
         Status = TorHttpClientStatus.Disconnected;
-
-        Log(LogLevel.Information, "Tor HTTP client disconnected");
     }
 
     public void Dispose()
     {
         Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await DisposeAsyncCore().ConfigureAwait(false);
         GC.SuppressFinalize(this);
     }
 
@@ -291,16 +297,12 @@ public class TorHttpClient : ITorHttpClient
 
     public bool SetHeader(string name, string value, bool overwrite = true)
     {
-        return _httpClient == null
-            ? throw new InvalidOperationException("Tor HTTP client is not initialized")
-            : _httpClient.SetHeader(name, value, overwrite);
+        return _httpClient?.SetHeader(name, value, overwrite) ?? false;
     }
 
     public bool SetHeader(string name, IEnumerable<string> values, bool overwrite = true)
     {
-        return _httpClient == null
-            ? throw new InvalidOperationException("Tor HTTP client is not initialized")
-            : _httpClient.SetHeader(name, values, overwrite);
+        return _httpClient?.SetHeader(name, values, overwrite) ?? false;
     }
 
     protected virtual void Dispose(bool disposing)
@@ -310,6 +312,13 @@ public class TorHttpClient : ITorHttpClient
             _torService?.Dispose();
             _httpClient?.Dispose();
         }
+    }
+
+    protected virtual async ValueTask DisposeAsyncCore()
+    {
+        if (_torService is not null) await _torService.DisposeAsync().ConfigureAwait(false);
+
+        _httpClient?.Dispose();
     }
 
     ~TorHttpClient()

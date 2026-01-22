@@ -1,6 +1,6 @@
 namespace Kokoabim.OnionHttpClient;
 
-public interface IHttpClient : IDisposable
+public interface IHttpClient : IDisposable, IAsyncDisposable
 {
     int RequestCount { get; }
 

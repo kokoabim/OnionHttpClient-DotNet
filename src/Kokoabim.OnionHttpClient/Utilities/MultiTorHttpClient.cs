@@ -75,6 +75,12 @@ public class MultiTorHttpClient : IMultiTorHttpClient
         GC.SuppressFinalize(this);
     }
 
+    public async ValueTask DisposeAsync()
+    {
+        await DisposeAsyncCore().ConfigureAwait(false);
+        GC.SuppressFinalize(this);
+    }
+
     /// <summary>
     /// Gets information about the Multi Tor HTTP client and its connection to the Tor network.
     /// </summary>
@@ -290,7 +296,16 @@ public class MultiTorHttpClient : IMultiTorHttpClient
     {
         if (disposing)
         {
-            foreach (var client in _clients) client.Dispose();
+            if (_clients.Count != 0) foreach (var client in _clients) client.Dispose();
+            _clients.Clear();
+        }
+    }
+
+    protected virtual async ValueTask DisposeAsyncCore()
+    {
+        if (_clients.Count != 0)
+        {
+            await Task.WhenAll(_clients.Select(static c => c.DisposeAsync().AsTask()));
             _clients.Clear();
         }
     }

@@ -3,7 +3,7 @@ using Microsoft.Extensions.Options;
 
 namespace Kokoabim.OnionHttpClient;
 
-public interface ITorService : IDisposable
+public interface ITorService : IDisposable, IAsyncDisposable
 {
     Exception? Error { get; }
     /// <summary>
@@ -317,9 +317,24 @@ public class TorService : ITorService
         }
     }
 
+    protected virtual async ValueTask DisposeAsyncCore()
+    {
+        await StopAsync().ConfigureAwait(false); // will cancel _cts
+        _resetEvent?.Dispose();
+        _cts?.Dispose();
+
+        DeleteDataDirectory();
+    }
+
     public void Dispose()
     {
         Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await DisposeAsyncCore().ConfigureAwait(false);
         GC.SuppressFinalize(this);
     }
 
