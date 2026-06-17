@@ -4,3 +4,7 @@
 
 **/*.secrets.json
 **/torrc-defaults
+
+dist/
+publish-to-nuget.sh
+test-publish.sh

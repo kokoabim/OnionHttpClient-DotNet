@@ -6,7 +6,6 @@ A simple HTTP client that routes requests through The Onion Router (Tor) protoco
 
 - .NET 10.0 or later
 - Tor expert bundle installed
-
   - macOS: `brew install tor` (via Homebrew)
   - Ubuntu: `sudo apt install tor`
   - Windows: Currently not supported
