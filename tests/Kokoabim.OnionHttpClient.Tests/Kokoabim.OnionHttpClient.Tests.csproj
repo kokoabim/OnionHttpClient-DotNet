@@ -4,6 +4,7 @@
         <TargetFramework>net10.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+
         <IsPackable>false</IsPackable>
         <IsTestProject>true</IsTestProject>
     </PropertyGroup>
@@ -22,11 +23,11 @@
     </ItemGroup>
 
     <ItemGroup>
-        <Using Include="Xunit" />
+        <ProjectReference Include="..\..\src\Kokoabim.OnionHttpClient\Kokoabim.OnionHttpClient.csproj" />
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\..\src\Kokoabim.OnionHttpClient\Kokoabim.OnionHttpClient.csproj" />
+        <Using Include="Xunit" />
     </ItemGroup>
 
 </Project>
