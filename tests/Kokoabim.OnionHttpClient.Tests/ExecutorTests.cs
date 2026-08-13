@@ -1,4 +1,4 @@
-﻿namespace Kokoabim.OnionHttpClient.Tests;
+namespace Kokoabim.OnionHttpClient.Tests;
 
 public class ExecutorTests
 {
