@@ -311,6 +311,7 @@ public class TorHttpClient : ITorHttpClient
         {
             _torService?.Dispose();
             _httpClient?.Dispose();
+            _requestHandler?.Dispose();
         }
     }
 

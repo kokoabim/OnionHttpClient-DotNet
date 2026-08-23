@@ -292,9 +292,9 @@ public class TorService : ITorService
     private string GenerateArguments(TorInstanceSettings instanceSettings)
     {
         var args = _torSharedSettings.Arguments
-            .Replace("{cwd}", _torSharedSettings.CurrentDirectory)
-            .Replace("{socksPort}", instanceSettings.SocksPort.ToString())
-            .Replace("{controlPort}", instanceSettings.ControlPort.ToString());
+            .Replace("{cwd}", _torSharedSettings.CurrentDirectory, StringComparison.OrdinalIgnoreCase)
+            .Replace("{socksPort}", instanceSettings.SocksPort.ToString(), StringComparison.OrdinalIgnoreCase)
+            .Replace("{controlPort}", instanceSettings.ControlPort.ToString(), StringComparison.OrdinalIgnoreCase);
 
         if (!string.IsNullOrWhiteSpace(instanceSettings.DataDirectory)) args += $" --DataDirectory \"{instanceSettings.DataDirectory}\"";
 
