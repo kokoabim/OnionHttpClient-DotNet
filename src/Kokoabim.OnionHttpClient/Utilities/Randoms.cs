@@ -10,7 +10,7 @@ public static class Randoms
     /// <summary>
     /// Generates a random string (using characters from a-z and 0-9) of the specified length.
     /// </summary>
-    public static string String(int length)
+    public static string GetString(int length)
     {
         var buffer = new char[length];
         for (int i = 0; i < length; i++) buffer[i] = _chars[_random.Next(_chars.Length)];
@@ -20,7 +20,7 @@ public static class Randoms
     /// <summary>
     /// Generates a unique, random integer within the specified range.
     /// </summary>
-    public static int UniqueInt(int minValue, int maxValue)
+    public static int GetUniqueInt(int minValue, int maxValue)
     {
         lock (_usedInts)
         {
@@ -39,13 +39,13 @@ public static class Randoms
     /// <summary>
     /// Generates a unique, random string (using characters from a-z and 0-9) of the specified length.
     /// </summary>
-    public static string UniqueString(int length)
+    public static string GetUniqueString(int length)
     {
         lock (_usedStrings)
         {
             do
             {
-                var value = String(length);
+                var value = GetString(length);
                 if (!_usedStrings.Contains(value))
                 {
                     _ = _usedStrings.Add(value);

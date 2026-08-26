@@ -15,11 +15,11 @@ public class TorInstanceSettings
     {
         if (useRandomPorts)
         {
-            ControlPort = Randoms.UniqueInt(9000, 9499);
-            SocksPort = Randoms.UniqueInt(9500, 9999);
+            ControlPort = Randoms.GetUniqueInt(9000, 9499);
+            SocksPort = Randoms.GetUniqueInt(9500, 9999);
         }
 
-        if (useRandomDataDirectory) DataDirectory ??= Path.Combine(Path.GetTempPath(), nameof(OnionHttpClient), Randoms.UniqueString(8));
+        if (useRandomDataDirectory) DataDirectory ??= Path.Combine(Path.GetTempPath(), nameof(OnionHttpClient), Randoms.GetUniqueString(8));
     }
 
     /// <summary>

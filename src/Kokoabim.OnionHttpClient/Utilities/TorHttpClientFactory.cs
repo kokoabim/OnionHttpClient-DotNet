@@ -39,7 +39,7 @@ public class TorHttpClientFactory : ITorHttpClientFactory
 {
     private readonly List<IDisposable> _disposables = [];
     private readonly HttpClientSharedSettings _httpClientSharedSettings;
-    private static int _nextHttpClientId = 0;
+    private static int _nextHttpClientId;
     private static readonly Random _random = new();
     private readonly IServiceScopeFactory _serviceScopeFactory;
 
