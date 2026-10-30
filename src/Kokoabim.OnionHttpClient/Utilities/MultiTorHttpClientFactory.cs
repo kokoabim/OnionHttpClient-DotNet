@@ -54,12 +54,12 @@ public class MultiTorHttpClientFactory : IMultiTorHttpClientFactory
         return null;
     }
 
+    #region IDisposable
+
     ~MultiTorHttpClientFactory()
     {
         Dispose(disposing: false);
     }
-
-    #region IDisposable
 
     protected virtual void Dispose(bool disposing)
     {

@@ -65,6 +65,11 @@ public class TorHttpClient : ITorHttpClient
         _torService = torService;
     }
 
+    ~TorHttpClient()
+    {
+        Dispose(disposing: false);
+    }
+
     #region methods
 
     /// <summary>
@@ -219,7 +224,7 @@ public class TorHttpClient : ITorHttpClient
 
             if (_httpClientInstanceSettings.SetBaseAddressRelatedHeaders.HasValue && _httpClientInstanceSettings.SetBaseAddressRelatedHeaders.Value)
             {
-                _ = _httpClient.SetHeader("Host", _httpClient.BaseAddress!.Host);
+                // _ = _httpClient.SetHeader("Host", _httpClient.BaseAddress!.Host);
                 _ = _httpClient.SetHeader("Origin", _httpClient.BaseAddress!.GetLeftPart(UriPartial.Authority));
                 _ = _httpClient.SetHeader("Referer", _httpClient.BaseAddress!.GetLeftPart(UriPartial.Authority));
             }
@@ -320,11 +325,6 @@ public class TorHttpClient : ITorHttpClient
         if (_torService is not null) await _torService.DisposeAsync().ConfigureAwait(false);
 
         _httpClient?.Dispose();
-    }
-
-    ~TorHttpClient()
-    {
-        Dispose(disposing: false);
     }
 
     private void Log(LogLevel level, string? message, params object?[] args)

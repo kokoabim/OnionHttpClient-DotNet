@@ -178,9 +178,13 @@ public class TorService : ITorService
         return Status == TorServiceStatus.Connected;
     }
 
-    ~TorService()
+    protected virtual async ValueTask DisposeAsyncCore()
     {
-        Dispose(disposing: false);
+        await StopAsync().ConfigureAwait(false); // will cancel _cts
+        _resetEvent?.Dispose();
+        _cts?.Dispose();
+
+        DeleteDataDirectory();
     }
 
     private void DeleteDataDirectory()
@@ -305,6 +309,11 @@ public class TorService : ITorService
 
     #region IDisposable
 
+    ~TorService()
+    {
+        Dispose(disposing: false);
+    }
+
     protected virtual void Dispose(bool disposing)
     {
         if (disposing)
@@ -315,15 +324,6 @@ public class TorService : ITorService
 
             DeleteDataDirectory();
         }
-    }
-
-    protected virtual async ValueTask DisposeAsyncCore()
-    {
-        await StopAsync().ConfigureAwait(false); // will cancel _cts
-        _resetEvent?.Dispose();
-        _cts?.Dispose();
-
-        DeleteDataDirectory();
     }
 
     public void Dispose()

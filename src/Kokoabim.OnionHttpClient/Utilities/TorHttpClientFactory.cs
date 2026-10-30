@@ -104,14 +104,14 @@ public class TorHttpClientFactory : ITorHttpClientFactory
         return (didInitialized, torHttpClient);
     }
 
+    private string GetRandomUserAgent() => _httpClientSharedSettings.UserAgents[_random.Next(_httpClientSharedSettings.UserAgents.Length)];
+
+    #region IDisposable
+
     ~TorHttpClientFactory()
     {
         Dispose(disposing: false);
     }
-
-    private string GetRandomUserAgent() => _httpClientSharedSettings.UserAgents[_random.Next(_httpClientSharedSettings.UserAgents.Length)];
-
-    #region IDisposable
 
     protected virtual void Dispose(bool disposing)
     {

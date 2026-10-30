@@ -31,12 +31,12 @@ public class AsyncManualResetEvent : IDisposable
     public Task WaitAsync(CancellationToken cancellationToken = default) =>
         cancellationToken == default ? _tcs.Task : Task.WhenAny(_tcs.Task, Task.Delay(Timeout.Infinite, cancellationToken));
 
+    #region IDisposable
+
     ~AsyncManualResetEvent()
     {
         Dispose(disposing: false);
     }
-
-    #region IDisposable
 
     protected virtual void Dispose(bool disposing)
     {
@@ -56,5 +56,5 @@ public class AsyncManualResetEvent : IDisposable
         GC.SuppressFinalize(this);
     }
 
-    #endregion 
+    #endregion
 }

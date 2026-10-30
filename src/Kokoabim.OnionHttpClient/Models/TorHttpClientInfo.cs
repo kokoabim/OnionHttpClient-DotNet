@@ -7,8 +7,8 @@ public class TorHttpClientInfo
     public int Id { get; set; }
     public string? IPAddress { get; set; }
     public bool IsTorClientConnected { get; set; }
-    public bool IsTorClientRunning { get; set; }
     public bool IsTorClientOK => IsTorClientRunning && IsTorClientConnected;
+    public bool IsTorClientRunning { get; set; }
     public TorServiceStatus TorServiceStatus { get; set; }
 
     public static TorHttpClientInfo Create(

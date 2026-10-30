@@ -5,7 +5,7 @@ public class ExecutorTests
     [Fact]
     public void Execute_WithValidCommand_ReturnsSuccess()
     {
-        // arrange 
+        // arrange
         var target = new Executor();
 
         // act

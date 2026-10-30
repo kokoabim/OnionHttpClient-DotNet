@@ -112,12 +112,12 @@ public class HttpClientResponse : IHttpClientResponse
         Request = httpResponseMessage.RequestMessage!;
     }
 
+    #region IDisposable
+
     ~HttpClientResponse()
     {
         Dispose(disposing: false);
     }
-
-    #region IDisposable
 
     protected virtual void Dispose(bool disposing)
     {
@@ -134,5 +134,5 @@ public class HttpClientResponse : IHttpClientResponse
         GC.SuppressFinalize(this);
     }
 
-    #endregion 
+    #endregion
 }

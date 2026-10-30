@@ -6,6 +6,7 @@ end_of_line = lf
 indent_size = 4
 indent_style = space
 insert_final_newline = false
+tab_width = 4
 trim_trailing_whitespace = true
 
 [*.cs]
@@ -27,5 +28,10 @@ dotnet_naming_style.begins_with_i.required_prefix = I
 dotnet_style_readonly_field = true:suggestion
 dotnet_style_require_accessibility_modifiers = for_non_interface_members:suggestion
 
-[*.{md,props,targets}]
+[*.{css,html,json,csproj}]
+indent_size = 2
+indent_style = space
+tab_width = 2
+
+[*.{md,props,targets,csproj,sln}]
 end_of_line = crlf

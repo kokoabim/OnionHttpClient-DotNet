@@ -53,6 +53,11 @@ public class MultiTorHttpClient : IMultiTorHttpClient
         _torHttpClientFactory = torHttpClientFactory;
     }
 
+    ~MultiTorHttpClient()
+    {
+        Dispose(disposing: false);
+    }
+
     #region methods
 
     /// <summary>
@@ -308,11 +313,6 @@ public class MultiTorHttpClient : IMultiTorHttpClient
             await Task.WhenAll(_clients.Select(static c => c.DisposeAsync().AsTask()));
             _clients.Clear();
         }
-    }
-
-    ~MultiTorHttpClient()
-    {
-        Dispose(disposing: false);
     }
 
     private int GetNextClientIndex() => _multiTorHttpClientSettings!.BalanceStrategy switch
