@@ -1,16 +1,16 @@
 # C#/.NET Onion HTTP Client Library
 
-A simple HTTP client that routes requests through The Onion Router (Tor) protocol using local Tor proxies.
+A simple HTTP client that routes requests through The Onion Router (Tor) protocol using automatically-managed local Tor proxies.
 
 ## Requirements
 
 - .NET 10.0 or later
-- Tor expert bundle installed
-  - macOS: `brew install tor` (via Homebrew)
-  - Ubuntu: `sudo apt install tor`
-  - Windows: Currently not supported
+- [Tor Expert Bundle](https://download.torproject.org/tor/) installed:
+    - macOS (using [Homebrew](https://brew.sh/)): `brew install tor`
+    - Ubuntu: `sudo apt install tor`
+    - Windows: Currently not supported
 
-  **Note:** Tor service does not need to be running as each Tor HTTP client (class `TorHttpClient`) will include its own instance.
+    **Note:** Do not start the Tor service. Each Tor HTTP client (class `TorHttpClient` instance) will automatically manage its own Tor proxy.
 
 ## Configuration
 
@@ -19,16 +19,18 @@ Create a Tor control password by running `tor --hash-password <YOUR_PLAIN_TEXT_P
 Create `torrc-defaults` file in the same directory as the executable with the following content:
 
 ```
+SOCKSPort 9050
+ControlPort 9051
 HashedControlPassword <YOUR_HASHED_PASSWORD>
 ```
 
-Create 'onionhttpclient.secrets.json' in the same directory as the executable with the following content:
+Create `onionhttpclient.secrets.json` in the same directory as the executable with the following content:
 
 ```json
 {
-  "Tor": {
-    "ControlPassword": "<YOUR_PLAIN_TEXT_PASSWORD>"
-  }
+    "Tor": {
+        "ControlPassword": "<YOUR_PLAIN_TEXT_PASSWORD>"
+    }
 }
 ```
 
